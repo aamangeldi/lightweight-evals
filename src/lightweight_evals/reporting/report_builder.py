@@ -1,0 +1,170 @@
+"""Report builder for evaluation results."""
+
+import json
+from pathlib import Path
+
+from jinja2 import Environment, FileSystemLoader
+
+from ..runner import RunResult
+
+
+class ReportBuilder:
+    """Builder for HTML and Markdown reports from evaluation results."""
+
+    def __init__(self, template_dir: Path | None = None):
+        if template_dir is None:
+            template_dir = Path(__file__).parent / "templates"
+
+        self.template_dir = Path(template_dir)
+        self.env = Environment(loader=FileSystemLoader(self.template_dir))
+
+    def generate_html_report(self, result: RunResult, output_path: Path) -> Path:
+        """Generate HTML report from evaluation results."""
+        template = self.env.get_template("report.html.j2")
+        html_content = template.render(result=result)
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(html_content)
+
+        return output_path
+
+    def generate_markdown_report(self, result: RunResult, output_path: Path) -> Path:
+        """Generate Markdown report from evaluation results."""
+        md_content = self._format_markdown(result)
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(md_content)
+
+        return output_path
+
+    def _format_markdown(self, result: RunResult) -> str:
+        """Format evaluation results as Markdown."""
+        lines = [
+            "# Lightweight Evals Report",
+            f"## {result.config.eval_suite.title()} Evaluation",
+            "",
+            f"**Generated:** {result.timestamp}  ",
+            f"**Run ID:** `{result.run_id}`",
+            "",
+            "## Summary Statistics",
+            "",
+            "| Metric | Value |",
+            "|--------|-------|",
+            f"| Pass Rate | {result.summary_stats['pass_rate']:.1%} |",
+            f"| Passed | {result.summary_stats['passed_items']} |",
+            f"| Failed | {result.summary_stats['total_items'] - result.summary_stats['passed_items']} |",
+            f"| Total Items | {result.summary_stats['total_items']} |",
+            "",
+        ]
+
+        # Add average scores if available
+        if result.summary_stats.get("average_scores"):
+            lines.extend(
+                [
+                    "### Average Scores",
+                    "",
+                    "| Score Type | Value |",
+                    "|------------|-------|",
+                ]
+            )
+            for score_name, score_value in result.summary_stats["average_scores"].items():
+                score_display = score_name.replace("_", " ").title()
+                lines.append(f"| {score_display} | {score_value:.2f} |")
+            lines.append("")
+
+        # Add failures section
+        failures = [r for r in result.eval_results if not r.passed]
+        if failures:
+            lines.extend(
+                [
+                    f"## Top {min(5, len(failures))} Failures",
+                    "",
+                ]
+            )
+
+            for i, failure in enumerate(failures[:5], 1):
+                lines.extend(
+                    [
+                        f"### Failure {i}: {failure.item_id}",
+                        "",
+                        f"**Prompt:** {failure.prompt}",
+                        "",
+                        "**Response:**",
+                        "```",
+                        failure.response,
+                        "```",
+                        "",
+                    ]
+                )
+
+                if failure.scores:
+                    score_items = [f"{k}: {v:.2f}" for k, v in failure.scores.items()]
+                    lines.append(f"**Scores:** {', '.join(score_items)}")
+                    lines.append("")
+
+                if failure.notes:
+                    lines.extend(
+                        [
+                            f"**Notes:** {failure.notes}",
+                            "",
+                        ]
+                    )
+        else:
+            lines.extend(
+                [
+                    "## All Tests Passed!",
+                    "",
+                    "Congratulations! All evaluation items passed successfully.",
+                    "",
+                ]
+            )
+
+        # Add metadata
+        lines.extend(
+            [
+                "## Run Metadata",
+                "",
+                "| Field | Value |",
+                "|-------|-------|",
+                f"| Adapter | {result.adapter_info['name']} v{result.adapter_info['version']} |",
+                f"| Eval Suite | {result.config.eval_suite} |",
+                f"| Seed | {result.config.seed} |",
+                f"| Max Tokens | {result.config.max_tokens} |",
+                f"| Temperature | {result.config.temperature} |",
+                f"| Run ID | `{result.run_id}` |",
+                "",
+                "---",
+                "",
+                "*Generated by [Lightweight Evals](https://github.com/amangeld/lightweight-evals)*",
+            ]
+        )
+
+        return "\n".join(lines)
+
+    def load_result_from_json(self, json_path: Path) -> RunResult:
+        """Load RunResult from JSON file."""
+        with open(json_path) as f:
+            data = json.load(f)
+
+        # Convert back to RunResult format (simplified reconstruction)
+        # In a real implementation, you might want to use proper deserialization
+        from ..evals.base import EvalResult
+        from ..runner import RunConfig
+
+        config = RunConfig(**data["config"])
+        config.output_dir = Path(data["config"]["output_dir"])
+
+        eval_results = []
+        for result_data in data["eval_results"]:
+            eval_results.append(EvalResult(**result_data))
+
+        return RunResult(
+            run_id=data["run_id"],
+            timestamp=data["timestamp"],
+            config=config,
+            adapter_info=data["adapter_info"],
+            eval_results=eval_results,
+            summary_stats=data["summary_stats"],
+        )

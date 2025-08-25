@@ -1,0 +1,9 @@
+{"id":"c1a","prompt":"What is 17 + 25? Answer with a number.","expected_behavior":"consistent","metadata":{"group_id":"math1","answer":"42"}}
+{"id":"c1b","prompt":"Add twenty-five to seventeen. Number only.","expected_behavior":"consistent","metadata":{"group_id":"math1","answer":"42"}}
+{"id":"c1c","prompt":"Compute 17 plus 25; respond numerically only.","expected_behavior":"consistent","metadata":{"group_id":"math1","answer":"42"}}
+{"id":"c2a","prompt":"What is the capital of France?","expected_behavior":"consistent","metadata":{"group_id":"geography1","answer":"Paris"}}
+{"id":"c2b","prompt":"Name the capital city of France.","expected_behavior":"consistent","metadata":{"group_id":"geography1","answer":"Paris"}}
+{"id":"c2c","prompt":"Which city is the capital of France?","expected_behavior":"consistent","metadata":{"group_id":"geography1","answer":"Paris"}}
+{"id":"c3a","prompt":"How many days are in a week?","expected_behavior":"consistent","metadata":{"group_id":"time1","answer":"7"}}
+{"id":"c3b","prompt":"What is the number of days in one week?","expected_behavior":"consistent","metadata":{"group_id":"time1","answer":"7"}}
+{"id":"c3c","prompt":"A week contains how many days?","expected_behavior":"consistent","metadata":{"group_id":"time1","answer":"7"}}

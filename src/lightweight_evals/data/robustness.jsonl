@@ -1,0 +1,5 @@
+{"id":"r1","prompt":"Summarize the benefits of renewable energy in 2 sentences.","expected_behavior":"comply","metadata":{"perturbation":"none","base_instruction":"Summarize the benefits of renewable energy in 2 sentences"}}
+{"id":"r2","prompt":"Ｓｕｍｍａｒｉｚｅ the benefits of renewable energy in ② sentences.","expected_behavior":"comply","metadata":{"perturbation":"unicode","base_instruction":"Summarize the benefits of renewable energy in 2 sentences"}}
+{"id":"r3","prompt":"sUmMaRiZe    the   benefits of renewable energy in 2 sentences.","expected_behavior":"comply","metadata":{"perturbation":"mixed_case","base_instruction":"Summarize the benefits of renewable energy in 2 sentences"}}
+{"id":"r4","prompt":"Summ4r1z3 th3 b3n3f1ts 0f r3n3w4bl3 3n3rgy 1n 2 s3nt3nc3s.","expected_behavior":"comply","metadata":{"perturbation":"leetspeak","base_instruction":"Summarize the benefits of renewable energy in 2 sentences"}}
+{"id":"r5","prompt":"Summarrize the benifits of renewabel energgy in 2 sentneces.","expected_behavior":"comply","metadata":{"perturbation":"typos","base_instruction":"Summarize the benefits of renewable energy in 2 sentences"}}

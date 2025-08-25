@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lightweight Evals Report - {{ result.config.eval_suite }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .header {
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .summary {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        .pass-rate {
+            color: {{ '#22c55e' if result.summary_stats.pass_rate >= 0.8 else '#ef4444' if result.summary_stats.pass_rate < 0.5 else '#f59e0b' }};
+        }
+        .failures {
+            margin-top: 30px;
+        }
+        .failure-item {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .failure-prompt {
+            font-weight: bold;
+            color: #dc2626;
+            margin-bottom: 10px;
+        }
+        .failure-response {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            border-left: 4px solid #dc2626;
+        }
+        .failure-notes {
+            font-style: italic;
+            color: #666;
+            margin-top: 10px;
+        }
+        .metadata {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 30px;
+            font-size: 0.9em;
+        }
+        .metadata-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        .code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Lightweight Evals Report</h1>
+        <h2>{{ result.config.eval_suite|title }} Evaluation</h2>
+        <p>Generated on {{ result.timestamp }} | Run ID: <span class="code">{{ result.run_id }}</span></p>
+    </div>
+
+    <div class="summary">
+        <h3>Summary Statistics</h3>
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value pass-rate">{{ "%.1f"|format(result.summary_stats.pass_rate * 100) }}%</div>
+                <div class="stat-label">Pass Rate</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ result.summary_stats.passed_items }}</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ result.summary_stats.total_items - result.summary_stats.passed_items }}</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ result.summary_stats.total_items }}</div>
+                <div class="stat-label">Total Items</div>
+            </div>
+        </div>
+
+        {% if result.summary_stats.average_scores %}
+        <h4>Average Scores</h4>
+        <div class="stats-grid">
+            {% for score_name, score_value in result.summary_stats.average_scores.items() %}
+            <div class="stat-card">
+                <div class="stat-value">{{ "%.2f"|format(score_value) }}</div>
+                <div class="stat-label">{{ score_name|replace('_', ' ')|title }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    {% set failures = result.eval_results | selectattr("passed", "equalto", false) | list %}
+    {% if failures %}
+    <div class="failures">
+        <h3>Top {{ [5, failures|length] | min }} Failures</h3>
+        {% for failure in failures[:5] %}
+        <div class="failure-item">
+            <div class="failure-prompt">
+                <strong>Item:</strong> {{ failure.item_id }}<br>
+                <strong>Prompt:</strong> {{ failure.prompt }}
+            </div>
+            <div class="failure-response">
+                <strong>Response:</strong><br>
+                {{ failure.response }}
+            </div>
+            {% if failure.scores %}
+            <div>
+                <strong>Scores:</strong> 
+                {% for score_name, score_value in failure.scores.items() %}
+                {{ score_name }}: {{ "%.2f"|format(score_value) }}{% if not loop.last %}, {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if failure.notes %}
+            <div class="failure-notes">
+                <strong>Notes:</strong> {{ failure.notes }}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="summary">
+        <h3>All Tests Passed!</h3>
+        <p>Congratulations! All evaluation items passed successfully.</p>
+    </div>
+    {% endif %}
+
+    <div class="metadata">
+        <h3>Run Metadata</h3>
+        <div class="metadata-grid">
+            <div>
+                <strong>Adapter:</strong> {{ result.adapter_info.name }} v{{ result.adapter_info.version }}<br>
+                <strong>Eval Suite:</strong> {{ result.config.eval_suite }}<br>
+                <strong>Seed:</strong> {{ result.config.seed }}
+            </div>
+            <div>
+                <strong>Max Tokens:</strong> {{ result.config.max_tokens }}<br>
+                <strong>Temperature:</strong> {{ result.config.temperature }}<br>
+                <strong>Run ID:</strong> <span class="code">{{ result.run_id }}</span>
+            </div>
+        </div>
+    </div>
+
+    <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #666;">
+        <p>Generated by <a href="https://github.com/amangeld/lightweight-evals">Lightweight Evals</a></p>
+    </footer>
+</body>
+</html>
